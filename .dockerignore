@@ -1,0 +1,7 @@
+node_modules
+.next
+uploads
+npm-debug.log
+*.log
+.env
+xt-app

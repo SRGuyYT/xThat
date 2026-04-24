@@ -1,0 +1,12 @@
+services:
+  xthat:
+    build: .
+    container_name: xthat
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    volumes:
+      - ./uploads:/app/uploads
+      - ./prisma:/app/prisma
+    restart: unless-stopped
