@@ -5,7 +5,6 @@ set "ROOT=%~dp0"
 if "%ROOT:~-1%"=="\" set "ROOT=%ROOT:~0,-1%"
 cd /d "%ROOT%"
 
-set "PID_FILE=%ROOT%\.xthat.pid"
 set "LOG_FILE=%ROOT%\.xthat.log"
 set "ERR_FILE=%ROOT%\.xthat.err.log"
 set "PORT=5000"
@@ -53,7 +52,7 @@ call :ensure_ready || exit /b 1
 echo Starting xThat in foreground on port %PORT%...
 set "PORT=%PORT%"
 set "HOSTNAME=%HOSTNAME%"
-call npm run dev -- --hostname %HOSTNAME% --port %PORT%
+npm run dev -- --hostname %HOSTNAME% --port %PORT%
 exit /b %errorlevel%
 
 :start_bg
@@ -64,29 +63,18 @@ if %errorlevel%==0 (
   goto status
 )
 echo Starting xThat in background on port %PORT%...
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$wd = [System.IO.Path]::GetFullPath('%ROOT%');" ^
-  "$command = '$env:PORT=''%PORT%''; $env:HOSTNAME=''%HOSTNAME%''; npm run dev -- --hostname %HOSTNAME% --port %PORT%';" ^
-  "$process = Start-Process -FilePath 'powershell.exe' -WorkingDirectory $wd -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-Command',$command -WindowStyle Hidden -RedirectStandardOutput '.xthat.log' -RedirectStandardError '.xthat.err.log' -PassThru;" ^
-  "Set-Content -Path '.xthat.pid' -Value $process.Id;"
-if errorlevel 1 exit /b 1
-timeout /t 2 /nobreak >nul
-for /f %%P in ('powershell -NoProfile -ExecutionPolicy Bypass -Command "(Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'node.exe' -and $_.CommandLine -like '*%ROOT:\=\\%*next*dev*--port %PORT%*' } | Select-Object -First 1 -ExpandProperty ProcessId)"') do (
-  >"%PID_FILE%" echo %%P
+start "xThat Server" /MIN powershell -NoProfile -ExecutionPolicy Bypass -NoExit -Command "Set-Location -LiteralPath '%ROOT%'; $env:PORT='%PORT%'; $env:HOSTNAME='%HOSTNAME%'; npm run dev -- --hostname %HOSTNAME% --port %PORT%"
+for /l %%I in (1,1,20) do (
+  call :status_check >nul 2>nul
+  if !errorlevel! EQU 0 goto status
+  timeout /t 1 /nobreak >nul
 )
 goto status
 
 :status_check
-if not exist "%PID_FILE%" exit /b 1
-set /p XPID=<"%PID_FILE%"
+set "XPID="
+for /f %%P in ('powershell -NoProfile -ExecutionPolicy Bypass -Command "$p = Get-NetTCPConnection -State Listen -LocalPort %PORT% -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty OwningProcess; if ($p) { $p }"') do set "XPID=%%P"
 if "%XPID%"=="" exit /b 1
-tasklist /FI "PID eq %XPID%" | find "%XPID%" >nul
-if not errorlevel 1 exit /b 0
-for /f %%P in ('powershell -NoProfile -ExecutionPolicy Bypass -Command "(Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'node.exe' -and $_.CommandLine -like '*%ROOT:\=\\%*next*dev*--port %PORT%*' } | Select-Object -First 1 -ExpandProperty ProcessId)"') do (
-  set "XPID=%%P"
-)
-if "%XPID%"=="" exit /b 1
->"%PID_FILE%" echo %XPID%
 tasklist /FI "PID eq %XPID%" | find "%XPID%" >nul
 if errorlevel 1 exit /b 1
 exit /b 0
@@ -95,14 +83,10 @@ exit /b 0
 call :status_check >nul 2>nul
 if errorlevel 1 (
   echo xThat is not running.
-  if exist "%PID_FILE%" del /f /q "%PID_FILE%" >nul 2>nul
   exit /b 0
 )
-set /p XPID=<"%PID_FILE%"
 echo Stopping xThat process %XPID%...
 taskkill /PID %XPID% /T /F >nul
-for /f %%P in ('powershell -NoProfile -ExecutionPolicy Bypass -Command "(Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'node.exe' -and $_.CommandLine -like '*%ROOT:\=\\%*next*dev*--port %PORT%*' } | Select-Object -ExpandProperty ProcessId)"') do taskkill /PID %%P /T /F >nul 2>nul
-del /f /q "%PID_FILE%" >nul 2>nul
 echo Stopped.
 exit /b 0
 
@@ -112,10 +96,8 @@ if errorlevel 1 (
   echo xThat is not running.
   exit /b 1
 )
-set /p XPID=<"%PID_FILE%"
 echo xThat is running on http://localhost:%PORT% with PID %XPID%.
-echo Log file: %LOG_FILE%
-if exist "%ERR_FILE%" echo Error log: %ERR_FILE%
+echo Background mode runs in a minimized PowerShell window and can be stopped with xthat.bat stop.
 exit /b 0
 
 :restart
@@ -130,7 +112,7 @@ exit /b %errorlevel%
 echo Usage: xthat.bat ^<start^|start-bg^|stop^|status^|restart^|gui^>
 echo   gui       Open the Windows launcher UI
 echo   start     Run in the current window
-echo   start-bg  Run in the background and write .xthat.pid + .xthat.log
+echo   start-bg  Run in a minimized background window
 echo   stop      Stop the background server
 echo   status    Show background server status
 echo   restart   Restart the background server

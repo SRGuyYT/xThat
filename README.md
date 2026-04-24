@@ -17,7 +17,7 @@ xThat is a private multi-model AI workspace built with Next.js, TypeScript, Tail
 - Streaming responses
 - Markdown rendering with syntax highlighting and copy-code buttons
 - Image, PDF, TXT, MD, and DOCX uploads
-- Local login with encrypted session cookies
+- Cloudflare Access-aware local workspace access
 - API keys from `.env` or encrypted SQLite storage
 - Local chat history with rename/delete conversation support
 - Theme toggle and liquid glass interface
@@ -74,7 +74,7 @@ BLOCKED_REDIRECT_URL=https://xthat.sky0cloud.dpdns.org/blocked/no-access
 
 ## Windows 11 Setup
 
-1. Install Node.js LTS from [nodejs.org](https://nodejs.org/).
+1. Install Node.js 22 LTS from [nodejs.org](https://nodejs.org/).
 2. Install Docker Desktop from [docker.com](https://www.docker.com/products/docker-desktop/).
 3. Clone the repo:
    ```powershell
@@ -118,6 +118,8 @@ Windows behavior:
 
 - double-clicking `xthat.bat` opens a usable launcher GUI
 - the GUI lets you start, stop, restart, open the app, and open logs
+- `start-bg` runs xThat in a minimized PowerShell window
+- `stop` finds the process listening on the configured port and kills it cleanly
 
 Shell behavior:
 
@@ -146,11 +148,7 @@ chmod +x ./xthat.sh
 ./xthat.sh stop
 ```
 
-The scripts read `APP_URL` from `.env` and derive the runtime port from it. If `APP_URL=http://localhost:5000`, the launchers start xThat on port `5000`. The launchers use the local Next.js webpack dev server for the most reliable Windows behavior. Background runs write:
-
-- `.xthat.pid`
-- `.xthat.log`
-- `.xthat.err.log` on Windows when stderr is used
+The scripts read `APP_URL` from `.env` and derive the runtime port from it. If `APP_URL=http://localhost:5000`, the launchers start xThat on port `5000`. The Windows launcher manages the server by checking which process is actually listening on that port instead of relying on a stale PID file.
 
 ## Docker
 
@@ -246,6 +244,14 @@ The blocked route receives query params such as:
 - `401 Unauthorized` on startup:
   - Check `ENCRYPTION_KEY`.
   - Check `REQUIRE_APP_ENCRYPTION`.
+- Cloudflare shows `502 Bad Gateway`:
+  - Make sure xThat is running locally on the same port your tunnel points to.
+  - Check `APP_URL` in `.env`.
+  - Run `.\xthat.bat status` on Windows or `./xthat.sh status` on shell environments.
+  - Open `http://localhost:5000` directly before troubleshooting Cloudflare.
+- Windows local server opens then immediately fails:
+  - Use Node.js 22 LTS instead of Node 24/current.
+  - Re-run `npm install` after changing Node versions.
   - Check Cloudflare Access headers if enabled.
 - Uploads fail:
   - Confirm the file type is supported.
