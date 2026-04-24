@@ -33,11 +33,6 @@ ensure_ready() {
     exit 1
   fi
 
-  if [[ ! -f "$ROOT/.next/standalone/server.js" ]]; then
-    echo "Production build not found. Running npm run build..."
-    npm run build
-  fi
-
   npm run db:init
 }
 
@@ -52,7 +47,7 @@ is_running() {
 start_fg() {
   ensure_ready
   echo "Starting xThat in foreground on port $PORT..."
-  PORT="$PORT" HOSTNAME="$HOSTNAME" npm run start
+  PORT="$PORT" HOSTNAME="$HOSTNAME" npm run dev -- --hostname "$HOSTNAME" --port "$PORT"
 }
 
 start_bg() {
@@ -63,7 +58,7 @@ start_bg() {
   fi
 
   echo "Starting xThat in background on port $PORT..."
-  PORT="$PORT" HOSTNAME="$HOSTNAME" nohup npm run start >>"$LOG_FILE" 2>&1 &
+  PORT="$PORT" HOSTNAME="$HOSTNAME" nohup npm run dev -- --hostname "$HOSTNAME" --port "$PORT" >>"$LOG_FILE" 2>&1 &
   echo $! >"$PID_FILE"
   sleep 1
   status

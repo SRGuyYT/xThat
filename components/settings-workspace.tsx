@@ -49,13 +49,12 @@ export function SettingsWorkspace() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [providerKeys, setProviderKeys] = useState<Record<string, string>>({});
-  const [credentials, setCredentials] = useState({ username: "", password: "" });
 
   const loadSettings = async () => {
     setLoading(true);
     const response = await fetch("/api/settings", { cache: "no-store" });
     if (response.status === 401) {
-      router.push("/login");
+      router.push("/blocked/no-access?code=401&reason=missing_access_identity");
       return;
     }
 
@@ -70,7 +69,7 @@ export function SettingsWorkspace() {
         setLoading(true);
         const response = await fetch("/api/settings", { cache: "no-store" });
         if (response.status === 401) {
-          router.push("/login");
+          router.push("/blocked/no-access?code=401&reason=missing_access_identity");
           return;
         }
 
@@ -115,10 +114,7 @@ export function SettingsWorkspace() {
       body: JSON.stringify({
         settings: data.settings,
         providerKeys,
-        security:
-          credentials.username && credentials.password
-            ? credentials
-            : null,
+        security: null,
         customModels: data.models.filter((model) => model.isCustom),
       }),
     });
@@ -590,33 +586,9 @@ export function SettingsWorkspace() {
           <div className="glass-panel rounded-[2rem] p-5" id="security">
             <h2 className="text-lg font-semibold">Security</h2>
             <div className="mt-4 space-y-4">
-              <label className="block text-sm">
-                Change local admin username
-                <input
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-2"
-                  value={credentials.username}
-                  onChange={(event) =>
-                    setCredentials((current) => ({
-                      ...current,
-                      username: event.target.value,
-                    }))
-                  }
-                />
-              </label>
-              <label className="block text-sm">
-                Change local admin password
-                <input
-                  type="password"
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-2"
-                  value={credentials.password}
-                  onChange={(event) =>
-                    setCredentials((current) => ({
-                      ...current,
-                      password: event.target.value,
-                    }))
-                  }
-                />
-              </label>
+              <div className="rounded-2xl border border-white/10 px-4 py-3 text-sm text-slate-300">
+                Built-in login is disabled. Access is controlled by Cloudflare Access when enabled.
+              </div>
               <label className="block text-sm">
                 Session timeout (minutes)
                 <input
@@ -638,7 +610,9 @@ export function SettingsWorkspace() {
                 />
               </label>
               <div className="rounded-2xl border border-white/10 px-4 py-3 text-sm">
-                Cloudflare Access protection status placeholder
+                {data.cloudflareEmail
+                  ? "Cloudflare Access protection is active."
+                  : "Cloudflare Access protection status unavailable from the current request."}
               </div>
               <div className="rounded-2xl border border-white/10 px-4 py-3 text-sm">
                 {data.cloudflareEmail

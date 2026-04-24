@@ -45,10 +45,6 @@ if not exist "%ROOT%\node_modules" (
   echo node_modules not found. Run npm install first.
   exit /b 1
 )
-if not exist "%ROOT%\.next\standalone\server.js" (
-  echo Production build not found. Running npm run build...
-  call npm run build || exit /b 1
-)
 call npm run db:init || exit /b 1
 exit /b 0
 
@@ -57,7 +53,7 @@ call :ensure_ready || exit /b 1
 echo Starting xThat in foreground on port %PORT%...
 set "PORT=%PORT%"
 set "HOSTNAME=%HOSTNAME%"
-call npm run start
+call npm run dev -- --hostname %HOSTNAME% --port %PORT%
 exit /b %errorlevel%
 
 :start_bg
@@ -70,16 +66,27 @@ if %errorlevel%==0 (
 echo Starting xThat in background on port %PORT%...
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$wd = [System.IO.Path]::GetFullPath('%ROOT%');" ^
-  "$process = Start-Process -FilePath 'cmd.exe' -WorkingDirectory $wd -ArgumentList '/c','set PORT=%PORT%&& set HOSTNAME=%HOSTNAME%&& npm run start' -WindowStyle Hidden -RedirectStandardOutput '.xthat.log' -RedirectStandardError '.xthat.err.log' -PassThru;" ^
+  "$command = '$env:PORT=''%PORT%''; $env:HOSTNAME=''%HOSTNAME%''; npm run dev -- --hostname %HOSTNAME% --port %PORT%';" ^
+  "$process = Start-Process -FilePath 'powershell.exe' -WorkingDirectory $wd -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-Command',$command -WindowStyle Hidden -RedirectStandardOutput '.xthat.log' -RedirectStandardError '.xthat.err.log' -PassThru;" ^
   "Set-Content -Path '.xthat.pid' -Value $process.Id;"
 if errorlevel 1 exit /b 1
 timeout /t 2 /nobreak >nul
+for /f %%P in ('powershell -NoProfile -ExecutionPolicy Bypass -Command "(Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'node.exe' -and $_.CommandLine -like '*%ROOT:\=\\%*next*dev*--port %PORT%*' } | Select-Object -First 1 -ExpandProperty ProcessId)"') do (
+  >"%PID_FILE%" echo %%P
+)
 goto status
 
 :status_check
 if not exist "%PID_FILE%" exit /b 1
 set /p XPID=<"%PID_FILE%"
 if "%XPID%"=="" exit /b 1
+tasklist /FI "PID eq %XPID%" | find "%XPID%" >nul
+if not errorlevel 1 exit /b 0
+for /f %%P in ('powershell -NoProfile -ExecutionPolicy Bypass -Command "(Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'node.exe' -and $_.CommandLine -like '*%ROOT:\=\\%*next*dev*--port %PORT%*' } | Select-Object -First 1 -ExpandProperty ProcessId)"') do (
+  set "XPID=%%P"
+)
+if "%XPID%"=="" exit /b 1
+>"%PID_FILE%" echo %XPID%
 tasklist /FI "PID eq %XPID%" | find "%XPID%" >nul
 if errorlevel 1 exit /b 1
 exit /b 0
@@ -94,6 +101,7 @@ if errorlevel 1 (
 set /p XPID=<"%PID_FILE%"
 echo Stopping xThat process %XPID%...
 taskkill /PID %XPID% /T /F >nul
+for /f %%P in ('powershell -NoProfile -ExecutionPolicy Bypass -Command "(Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'node.exe' -and $_.CommandLine -like '*%ROOT:\=\\%*next*dev*--port %PORT%*' } | Select-Object -ExpandProperty ProcessId)"') do taskkill /PID %%P /T /F >nul 2>nul
 del /f /q "%PID_FILE%" >nul 2>nul
 echo Stopped.
 exit /b 0

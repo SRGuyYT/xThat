@@ -1,6 +1,7 @@
 import { EncryptJWT, jwtDecrypt } from "jose";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 
+import { ensureUserByUsername } from "@/lib/auth/local-user";
 import { env } from "@/lib/env";
 import { hasValidEncryptionKey } from "@/lib/crypto";
 
@@ -47,21 +48,33 @@ export const readSession = async (): Promise<SessionUser | null> => {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
 
-  if (!token || !hasValidEncryptionKey()) {
-    return null;
+  if (token && hasValidEncryptionKey()) {
+    try {
+      const result = await jwtDecrypt(token, sessionSecret());
+      const userId = result.payload.sub;
+      const username =
+        typeof result.payload.username === "string" ? result.payload.username : "";
+
+      if (userId && username) {
+        return { userId, username };
+      }
+    } catch {
+      // Fall through to automatic identity resolution.
+    }
   }
 
-  try {
-    const result = await jwtDecrypt(token, sessionSecret());
-    const userId = result.payload.sub;
-    const username = typeof result.payload.username === "string" ? result.payload.username : "";
+  const headerList = await headers();
+  const cloudflareEmail = headerList.get("cf-access-authenticated-user-email");
 
-    if (!userId || !username) {
+  if (env.cloudflareAccessEnabled) {
+    if (!cloudflareEmail) {
       return null;
     }
 
-    return { userId, username };
-  } catch {
-    return null;
+    const user = await ensureUserByUsername(cloudflareEmail);
+    return { userId: user.id, username: user.username };
   }
+
+  const user = await ensureUserByUsername(env.authUsername || "local");
+  return { userId: user.id, username: user.username };
 };

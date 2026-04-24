@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { requireSession } from "@/lib/auth/require-session";
-import { updateLocalCredentials } from "@/lib/auth/local-user";
 import { getCloudflareEmail } from "@/lib/cloudflare";
 import type { ModelCapability, ProviderId } from "@/lib/model-capabilities";
 import { jsonError } from "@/lib/http";
@@ -55,12 +53,7 @@ const schema = z.object({
     }),
   }),
   providerKeys: z.record(z.string(), z.string()),
-  security: z
-    .object({
-      username: z.string().min(1),
-      password: z.string().min(8),
-    })
-    .nullable(),
+  security: z.null(),
   customModels: z.array(
     z.object({
       id: z.string().optional(),
@@ -122,7 +115,6 @@ export async function POST(request: Request) {
   }
 
   try {
-    const session = guard.session ?? (await requireSession());
     const parsed = schema.safeParse(await request.json());
     if (!parsed.success) {
       return jsonError("Invalid settings payload.");
@@ -139,14 +131,6 @@ export async function POST(request: Request) {
 
     for (const [provider, key] of Object.entries(parsed.data.providerKeys)) {
       await saveProviderApiKey(provider as ProviderId, key);
-    }
-
-    if (parsed.data.security) {
-      await updateLocalCredentials(
-        session.userId,
-        parsed.data.security.username,
-        parsed.data.security.password,
-      );
     }
 
     const submittedIds = parsed.data.customModels

@@ -1,7 +1,5 @@
-import { LoginForm } from "@/components/login-form";
-import { enforcePageGuard } from "@/lib/security/guards";
+import { redirect } from "next/navigation";
 
-export default async function LoginPage() {
-  await enforcePageGuard("/login", false);
-  return <LoginForm />;
+export default function LoginPage() {
+  redirect("/chat");
 }

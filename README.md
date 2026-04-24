@@ -146,7 +146,7 @@ chmod +x ./xthat.sh
 ./xthat.sh stop
 ```
 
-The scripts read `APP_URL` from `.env` and derive the runtime port from it. If `APP_URL=http://localhost:5000`, the launchers start xThat on port `5000`. Background runs write:
+The scripts read `APP_URL` from `.env` and derive the runtime port from it. If `APP_URL=http://localhost:5000`, the launchers start xThat on port `5000`. The launchers use the local Next.js webpack dev server for the most reliable Windows behavior. Background runs write:
 
 - `.xthat.pid`
 - `.xthat.log`

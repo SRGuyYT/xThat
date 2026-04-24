@@ -6,7 +6,6 @@ import {
   File,
   ImageIcon,
   LoaderCircle,
-  LogOut,
   PanelLeft,
   Pencil,
   Plus,
@@ -131,7 +130,7 @@ export function ChatWorkspace() {
     const response = await fetch(`/api/bootstrap${query}`, { cache: "no-store" });
 
     if (response.status === 401) {
-      router.push("/login");
+      router.push("/blocked/no-access?code=401&reason=missing_access_identity");
       return;
     }
 
@@ -148,7 +147,7 @@ export function ChatWorkspace() {
         const response = await fetch(`/api/bootstrap${query}`, { cache: "no-store" });
 
         if (response.status === 401) {
-          router.push("/login");
+          router.push("/blocked/no-access?code=401&reason=missing_access_identity");
           return;
         }
 
@@ -454,17 +453,9 @@ export function ChatWorkspace() {
               <Settings className="size-4" />
               Settings
             </Link>
-            <button
-              type="button"
-              className="flex w-full items-center gap-2 rounded-2xl border border-white/10 px-4 py-3 text-sm text-slate-200"
-              onClick={async () => {
-                await fetch("/api/auth/logout", { method: "POST" });
-                router.push("/login");
-              }}
-            >
-              <LogOut className="size-4" />
-              Sign out
-            </button>
+            <div className="rounded-2xl border border-white/10 px-4 py-3 text-sm text-slate-300">
+              Access is managed by Cloudflare.
+            </div>
           </div>
         </aside>
 

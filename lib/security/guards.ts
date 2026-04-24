@@ -31,7 +31,7 @@ export const enforcePageGuard = async (pathname: string, requireAuth: boolean) =
 
   const session = await readSession();
   if (requireAuth && !session) {
-    redirect("/login");
+    redirect("/blocked/no-access?code=401&reason=missing_access_identity");
   }
 
   if (!requireAuth && session) {
@@ -70,7 +70,10 @@ export const enforceApiGuard = async (request: Request, requireAuth = true) => {
   const session = await readSession();
   if (!session) {
     return {
-      error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+      error: NextResponse.json(
+        { error: "Unauthorized", reason: "missing_access_identity" },
+        { status: 401 },
+      ),
       session: null,
     };
   }

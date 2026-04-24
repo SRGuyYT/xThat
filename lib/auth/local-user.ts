@@ -3,8 +3,10 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
 
-export const ensureLocalAdmin = async () => {
-  const existing = await prisma.user.findFirst();
+export const ensureUserByUsername = async (username: string) => {
+  const existing = await prisma.user.findUnique({
+    where: { username },
+  });
 
   if (existing) {
     return existing;
@@ -14,10 +16,14 @@ export const ensureLocalAdmin = async () => {
 
   return prisma.user.create({
     data: {
-      username: env.authUsername,
+      username,
       passwordHash,
     },
   });
+};
+
+export const ensureLocalAdmin = async () => {
+  return ensureUserByUsername(env.authUsername);
 };
 
 export const verifyLocalCredentials = async (username: string, password: string) => {

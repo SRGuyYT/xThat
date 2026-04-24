@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "postinstall": "prisma generate",
-    "build": "next build",
-    "start": "node .next/standalone/server.js",
+    "build": "next build --webpack",
+    "start": "next dev --webpack",
     "lint": "eslint .",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
