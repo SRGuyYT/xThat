@@ -105,7 +105,52 @@ BLOCKED_REDIRECT_URL=https://xthat.sky0cloud.dpdns.org/blocked/no-access
    docker compose up -d
    ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open the URL from `APP_URL` in your `.env`. For your current setup that is `http://localhost:5000`.
+
+## Quick Start Scripts
+
+Two launcher scripts are included in the repo root:
+
+- Windows: `xthat.bat`
+- macOS/Linux/Git Bash/WSL: `xthat.sh`
+
+Windows behavior:
+
+- double-clicking `xthat.bat` opens a usable launcher GUI
+- the GUI lets you start, stop, restart, open the app, and open logs
+
+Shell behavior:
+
+- running `./xthat.sh` with no arguments opens an interactive menu
+
+Commands:
+
+- `start` runs the server in the current terminal
+- `start-bg` runs it in the background
+- `stop` stops the background server
+- `status` shows whether the background server is running
+- `restart` restarts the background server in the background
+
+Examples:
+
+```powershell
+.\xthat.bat start
+.\xthat.bat start-bg
+.\xthat.bat stop
+```
+
+```bash
+chmod +x ./xthat.sh
+./xthat.sh start
+./xthat.sh start-bg
+./xthat.sh stop
+```
+
+The scripts read `APP_URL` from `.env` and derive the runtime port from it. If `APP_URL=http://localhost:5000`, the launchers start xThat on port `5000`. Background runs write:
+
+- `.xthat.pid`
+- `.xthat.log`
+- `.xthat.err.log` on Windows when stderr is used
 
 ## Docker
 
