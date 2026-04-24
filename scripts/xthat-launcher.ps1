@@ -5,10 +5,10 @@ param(
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-$script:Root = $Root
-$script:BatPath = Join-Path $Root "xthat.bat"
-$script:LogPath = Join-Path $Root ".xthat.log"
-$script:ErrLogPath = Join-Path $Root ".xthat.err.log"
+$script:Root = $Root.Trim().Trim('"')
+$script:BatPath = Join-Path $script:Root "xthat.bat"
+$script:LogPath = Join-Path $script:Root ".xthat.log"
+$script:ErrLogPath = Join-Path $script:Root ".xthat.err.log"
 
 function Get-AppUrl {
   $envPath = Join-Path $script:Root ".env"

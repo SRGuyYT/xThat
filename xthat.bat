@@ -2,11 +2,12 @@
 setlocal enabledelayedexpansion
 
 set "ROOT=%~dp0"
+if "%ROOT:~-1%"=="\" set "ROOT=%ROOT:~0,-1%"
 cd /d "%ROOT%"
 
-set "PID_FILE=%ROOT%.xthat.pid"
-set "LOG_FILE=%ROOT%.xthat.log"
-set "ERR_FILE=%ROOT%.xthat.err.log"
+set "PID_FILE=%ROOT%\.xthat.pid"
+set "LOG_FILE=%ROOT%\.xthat.log"
+set "ERR_FILE=%ROOT%\.xthat.err.log"
 set "PORT=5000"
 set "HOSTNAME=0.0.0.0"
 
@@ -22,7 +23,7 @@ if /I "%~1"=="gui" goto gui
 goto usage
 
 :load_port
-for /f "usebackq tokens=1,* delims==" %%A in ("%ROOT%.env") do (
+for /f "usebackq tokens=1,* delims==" %%A in ("%ROOT%\.env") do (
   if /I "%%A"=="APP_URL" call :parse_url_port "%%B"
 )
 exit /b 0
@@ -40,11 +41,11 @@ for /f "tokens=1,2 delims=:" %%A in ("%HOSTPORT%") do (
 exit /b 0
 
 :ensure_ready
-if not exist "%ROOT%node_modules" (
+if not exist "%ROOT%\node_modules" (
   echo node_modules not found. Run npm install first.
   exit /b 1
 )
-if not exist "%ROOT%.next\standalone\server.js" (
+if not exist "%ROOT%\.next\standalone\server.js" (
   echo Production build not found. Running npm run build...
   call npm run build || exit /b 1
 )
@@ -114,7 +115,7 @@ call :stop
 goto start_bg
 
 :gui
-powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%scripts\xthat-launcher.ps1" -Root "%ROOT%"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\scripts\xthat-launcher.ps1" -Root "%ROOT%"
 exit /b %errorlevel%
 
 :usage
